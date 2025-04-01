@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Usuarios</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .gallery { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .card { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        img { width: 150px; height: 150px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <h1>Sube tu Foto</h1>
+    <input type="file" id="fileInput" accept="image/*">
+    <input type="text" id="nameInput" placeholder="Nombre">
+    <input type="number" id="ageInput" placeholder="Edad">
+    <input type="text" id="countryInput" placeholder="País">
+    <button onclick="uploadImage()">Subir</button>
+    
+    <h2>Galería</h2>
+    <div class="gallery" id="gallery"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            databaseURL: "https://TU_PROYECTO.firebaseio.com",
+            projectId: "TU_PROYECTO",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "TU_MESSAGING_ID",
+            appId: "TU_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+        const database = firebase.database();
+        
+        function uploadImage() {
+            let file = document.getElementById("fileInput").files[0];
+            let name = document.getElementById("nameInput").value;
+            let age = document.getElementById("ageInput").value;
+            let country = document.getElementById("countryInput").value;
+            if (!file || !name || !age || !country) return alert("Completa todos los campos");
+            
+            let storageRef = storage.ref('images/' + file.name);
+            let uploadTask = storageRef.put(file);
+            
+            uploadTask.then(snapshot => snapshot.ref.getDownloadURL()).then(url => {
+                let newUser = database.ref("users").push();
+                newUser.set({ name, age, country, imageUrl: url });
+                alert("Imagen subida correctamente");
+                loadGallery();
+            });
+        }
+        
+        function loadGallery() {
+            document.getElementById("gallery").innerHTML = "";
+            database.ref("users").once("value", snapshot => {
+                snapshot.forEach(child => {
+                    let data = child.val();
+                    let card = document.createElement("div");
+                    card.className = "card";
+                    card.innerHTML = `<img src="${data.imageUrl}"><p>${data.name}, ${data.age} - ${data.country}</p>`;
+                    document.getElementById("gallery").appendChild(card);
+                });
+            });
+        }
+        loadGallery();
+    </script>
+</body>
+</html>
